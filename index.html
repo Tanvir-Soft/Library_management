@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Library Management — Tailwind + JS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Small extra: scrollbar styling for nicer look */
+    ::-webkit-scrollbar { height: 8px; width: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.35); border-radius: 8px; }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans antialiased text-slate-800">
+
+  <div class="min-h-screen flex items-start justify-center py-12 px-4">
+    <div class="w-full max-w-4xl">
+
+      <!-- Header -->
+      <header class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-slate-700">Library Management</h1>
+        <div id="sessionInfo" class="text-slate-600 text-sm"></div>
+      </header>
+
+      <!-- Main card -->
+      <main class="bg-white rounded-2xl shadow-lg p-6">
+        <div id="loginWrap" class="">
+          <!-- Login -->
+          <div class="max-w-md mx-auto">
+            <h2 class="text-xl font-semibold mb-4 text-slate-700">Sign in</h2>
+
+            <div class="space-y-3">
+              <input id="username" class="w-full rounded-lg border border-slate-200 p-3" placeholder="Username" />
+              <input id="password" type="password" class="w-full rounded-lg border border-slate-200 p-3" placeholder="Password" />
+              <select id="role" class="w-full rounded-lg border border-slate-200 p-3">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+
+              <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium shadow-sm">
+                Login
+              </button>
+
+              <p class="text-sm text-slate-500">
+                Default admin: <code class="bg-slate-100 px-2 py-1 rounded">admin / admin123</code>
+                &nbsp;|&nbsp; user: <code class="bg-slate-100 px-2 py-1 rounded">user / user123</code>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DASHBOARD (hidden until login) -->
+        <div id="dashboard" class="hidden mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Left column: actions -->
+          <aside class="md:col-span-1 space-y-4">
+            <!-- Controls -->
+            <div class="p-4 bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-100 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <div id="who" class="font-medium text-slate-700"></div>
+                  <div id="roleLabel" class="text-xs text-slate-500"></div>
+                </div>
+                <div>
+                  <button onclick="logout()" class="text-sm px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600">Logout</button>
+                </div>
+              </div>
+
+              <!-- Admin-only buttons (will hide if not admin) -->
+              <div id="adminControls" class="space-y-2 hidden">
+                <button onclick="showPanel('addUserPanel')" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-2 rounded-md text-sm">+ Add User</button>
+                <button onclick="showPanel('usersPanel')" class="w-full bg-slate-700 hover:bg-slate-800 text-white p-2 rounded-md text-sm">View Users</button>
+                <hr class="my-2" />
+                <button onclick="showPanel('addBookPanel')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-md text-sm">+ Add Book</button>
+                <button onclick="showPanel('booksPanel')" class="w-full bg-slate-600 hover:bg-slate-700 text-white p-2 rounded-md text-sm">View Books</button>
+              </div>
+
+              <!-- User buttons -->
+              <div id="userControls" class="space-y-2">
+                <button onclick="showPanel('booksPanel')" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-md text-sm">Browse Books</button>
+                <button onclick="showPanel('borrowedPanel')" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 p-2 rounded-md text-sm">My Borrowed (local)</button>
+              </div>
+            </div>
+
+            <!-- Small info card -->
+            <div class="p-4 rounded-xl bg-gradient-to-r from-sky-50 to-white border border-slate-100">
+              <h4 class="text-sm font-semibold text-slate-700 mb-1">Quick tips</h4>
+              <ul class="text-xs text-slate-500 space-y-1">
+                <li>Admins can create users & manage books.</li>
+                <li>Users borrow books — qty reduces.</li>
+                <li>Data persists using <code class="bg-slate-100 px-1 rounded">localStorage</code>.</li>
+              </ul>
+            </div>
+          </aside>
+
+          <!-- Middle + Right columns: panels -->
+          <section class="md:col-span-2 space-y-6">
+
+            <!-- Add User Panel (admin) -->
+            <div id="addUserPanel" class="panel hidden p-5 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <h3 class="font-semibold text-slate-700 mb-3">Create New User (Admin)</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input id="newUser_username" placeholder="Username" class="col-span-1 md:col-span-3 rounded-lg border p-3" />
+                <input id="newUser_password" placeholder="Password" type="password" class="col-span-1 md:col-span-3 rounded-lg border p-3" />
+                <select id="newUser_role" class="rounded-lg border p-3 w-40">
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <div class="md:col-span-3">
+                  <button onclick="createUser()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md">Create User</button>
+                  <span id="createUserMsg" class="ml-3 text-sm"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Users List Panel (admin) -->
+            <div id="usersPanel" class="panel hidden p-5 bg-white rounded-xl border border-slate-100 shadow-sm overflow-auto max-h-[36vh]">
+              <h3 class="font-semibold text-slate-700 mb-3">Users</h3>
+              <ul id="usersList" class="space-y-3"></ul>
+            </div>
+
+            <!-- Add Book Panel -->
+            <div id="addBookPanel" class="panel hidden p-5 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <h3 class="font-semibold text-slate-700 mb-3">Add Book</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input id="b_title" placeholder="Title" class="rounded-lg border p-3 md:col-span-2" />
+                <input id="b_author" placeholder="Author" class="rounded-lg border p-3" />
+                <input id="b_genre" placeholder="Genre" class="rounded-lg border p-3" />
+                <input id="b_year" type="number" placeholder="Year" class="rounded-lg border p-3" />
+                <input id="b_qty" type="number" placeholder="Quantity" class="rounded-lg border p-3" />
+                <div class="md:col-span-3">
+                  <button onclick="createBook()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">Add Book</button>
+                  <span id="createBookMsg" class="ml-3 text-sm"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Books Panel (shared) -->
+            <div id="booksPanel" class="panel hidden p-5 bg-white rounded-xl border border-slate-100 shadow-sm overflow-auto max-h-[48vh]">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-slate-700">Books</h3>
+                <div class="flex gap-2">
+                  <input id="searchBook" placeholder="Search title/author/genre" class="rounded-lg border p-2 text-sm" oninput="renderBooks()" />
+                  <select id="filterGenre" class="rounded-lg border p-2 text-sm" onchange="renderBooks()">
+                    <option value="">All genres</option>
+                  </select>
+                </div>
+              </div>
+              <ul id="booksList" class="space-y-3"></ul>
+            </div>
+
+            <!-- Borrowed panel (simple local view) -->
+            <div id="borrowedPanel" class="panel hidden p-5 bg-white rounded-xl border border-slate-100 shadow-sm">
+              <h3 class="font-semibold text-slate-700 mb-3">My Borrowed Books (this session)</h3>
+              <ul id="borrowedList" class="space-y-2"></ul>
+            </div>
+
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    /* -------------------------
+       Storage & defaults
+       ------------------------- */
+    const STORAGE_KEYS = { USERS: 'lms_users_v1', BOOKS: 'lms_books_v1', BORROWED: 'lms_borrowed_v1' };
+
+    // default users/books if storage empty
+    const DEFAULT_USERS = [
+      { username: 'admin', password: 'admin123', role: 'admin' },
+      { username: 'user', password: 'user123', role: 'user' }
+    ];
+    const DEFAULT_BOOKS = [
+      { id: 1, title: "Harry Potter and the Sorcerer's Stone", author: "J.K. Rowling", genre: "Fantasy", year: 1997, qty: 5 },
+      { id: 2, title: "The Alchemist", author: "Paulo Coelho", genre: "Adventure", year: 1988, qty: 3 },
+      { id: 3, title: "Atomic Habits", author: "James Clear", genre: "Self-help", year: 2018, qty: 7 },
+      { id: 4, title: "To Kill a Mockingbird", author: "Harper Lee", genre: "Classic", year: 1960, qty: 4 },
+      { id: 5, title: "1984", author: "George Orwell", genre: "Dystopian", year: 1949, qty: 6 }
+    ];
+
+    // helpers
+    const $ = id => document.getElementById(id);
+    const show = el => el.classList.remove('hidden');
+    const hide = el => el.classList.add('hidden');
+    const panels = [...document.querySelectorAll('.panel')];
+
+    // load / save
+    function load(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return JSON.parse(JSON.stringify(fallback));
+        return JSON.parse(raw);
+      } catch (e) { return JSON.parse(JSON.stringify(fallback)); }
+    }
+    function save(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
+
+    // state
+    let users = load(STORAGE_KEYS.USERS, DEFAULT_USERS);
+    let books = load(STORAGE_KEYS.BOOKS, DEFAULT_BOOKS);
+    let borrowed = load(STORAGE_KEYS.BORROWED, {}); // map username -> [bookId,...]
+    let session = { username: null, role: null };
+
+    // init UI from storage
+    function init() {
+      populateGenreFilter();
+      updateSessionInfo();
+    }
+
+    /* -------------------------
+       AUTH
+       ------------------------- */
+    function login() {
+      const u = $('username').value.trim();
+      const p = $('password').value;
+      const r = $('role').value;
+
+      const found = users.find(x => x.username === u && x.password === p && x.role === r);
+      if (!found) { alert('Invalid credentials'); return; }
+
+      session.username = u; session.role = r;
+      // UI
+      $('username').value = ''; $('password').value = '';
+      hide($('loginWrap')); show($('dashboard'));
+      $('who').innerText = session.username;
+      $('roleLabel').innerText = session.role.toUpperCase();
+      updateSessionInfo();
+      // show admin controls if admin
+      if (session.role === 'admin') show($('adminControls')); else hide($('adminControls'));
+      renderBooks(); renderUsers(); renderBorrowed();
+    }
+
+    function logout() {
+      if (!confirm('Logout?')) return;
+      session = { username: null, role: null };
+      hide($('dashboard')); show($('loginWrap'));
+      updateSessionInfo();
+      // hide all panels
+      panels.forEach(p => hide(p));
+    }
+
+    function updateSessionInfo(){
+      $('sessionInfo').innerText = session.username ? `${session.username} • ${session.role}` : '';
+    }
+
+    /* -------------------------
+       USER MANAGEMENT (admin)
+       ------------------------- */
+    function createUser(){
+      const un = $('newUser_username').value.trim();
+      const pw = $('newUser_password').value;
+      const ro = $('newUser_role').value;
+      const msg = $('createUserMsg');
+
+      if(!un || !pw){ msg.innerText = 'Fill username & password'; msg.style.color='crimson'; return; }
+      if(users.some(u => u.username === un)){ msg.innerText = 'Username exists'; msg.style.color='crimson'; return; }
+
+      users.push({ username: un, password: pw, role: ro });
+      save(STORAGE_KEYS.USERS, users);
+      $('newUser_username').value=''; $('newUser_password').value='';
+      msg.innerText = 'User created'; msg.style.color='green';
+      renderUsers();
+    }
+
+    function renderUsers(){
+      if (!session.role || session.role !== 'admin') return hide($('usersPanel'));
+      show($('usersPanel'));
+      const ul = $('usersList'); ul.innerHTML = '';
+      users.forEach(u => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between p-3 border rounded';
+        li.innerHTML = `
+          <div>
+            <div class="font-medium">${escapeHtml(u.username)} ${u.username==='admin' ? '<span class="text-xs text-amber-600 ml-2">(built-in)</span>' : ''}</div>
+            <div class="text-xs text-slate-500">${u.role}</div>
+          </div>
+          <div class="flex gap-2">
+            ${u.username === session.username ? '' : `<button class="px-3 py-1 rounded bg-red-600 text-white text-sm" onclick="deleteUser('${u.username}')">Delete</button>`}
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function deleteUser(username){
+      if (!confirm('Delete user '+username+'?')) return;
+      users = users.filter(u => u.username !== username);
+      save(STORAGE_KEYS.USERS, users);
+      // also remove their borrowed record
+      delete borrowed[username];
+      save(STORAGE_KEYS.BORROWED, borrowed);
+      renderUsers();
+      renderBorrowed();
+    }
+
+    /* -------------------------
+       BOOK MANAGEMENT
+       ------------------------- */
+    function createBook(){
+      const title = $('b_title').value.trim();
+      const author = $('b_author').value.trim();
+      const genre = $('b_genre').value.trim();
+      const year = Number($('b_year').value);
+      const qty = Number($('b_qty').value);
+      const msg = $('createBookMsg');
+
+      if(!title || !author || !genre || !year || isNaN(qty) ){ msg.innerText='Fill fields correctly'; msg.style.color='crimson'; return; }
+
+      const newId = books.length ? Math.max(...books.map(b=>b.id)) + 1 : 1;
+      books.push({ id: newId, title, author, genre, year, qty: Number(qty) });
+      save(STORAGE_KEYS.BOOKS, books);
+      $('b_title').value=''; $('b_author').value=''; $('b_genre').value=''; $('b_year').value=''; $('b_qty').value='';
+      msg.innerText = 'Book added'; msg.style.color='green';
+      populateGenreFilter();
+      renderBooks();
+    }
+
+    function renderBooks(){
+      show($('booksPanel'));
+      // build filter options
+      populateGenreFilter();
+
+      const q = $('searchBook').value.trim().toLowerCase();
+      const genreFilter = $('filterGenre').value;
+      const ul = $('booksList'); ul.innerHTML = '';
+
+      let list = books.slice(); // copy
+      if (genreFilter) list = list.filter(b => b.genre === genreFilter);
+      if (q) list = list.filter(b => (b.title + ' ' + b.author + ' ' + b.genre).toLowerCase().includes(q));
+
+      if (!list.length) { ul.innerHTML = '<div class="text-sm text-slate-500">No books found.</div>'; return; }
+
+      list.forEach(b => {
+        const li = document.createElement('li');
+        li.className = 'p-3 border rounded flex flex-col md:flex-row md:justify-between md:items-center bg-slate-50';
+        li.innerHTML = `
+          <div>
+            <div class="font-semibold">${escapeHtml(b.title)}</div>
+            <div class="text-sm text-slate-500">${escapeHtml(b.author)} • ${escapeHtml(b.genre)} • ${b.year}</div>
+            <div class="text-sm mt-1">Qty: <span id="qty-${b.id}">${b.qty}</span></div>
+          </div>
+          <div class="mt-3 md:mt-0 flex gap-2">
+            ${session.role === 'admin' ? `<button class="px-3 py-1 rounded bg-yellow-500 text-white text-sm" onclick="incQty(${b.id})">+ Qty</button>
+            <button class="px-3 py-1 rounded bg-sky-600 text-white text-sm" onclick="decQty(${b.id})">- Qty</button>
+            <button class="px-3 py-1 rounded bg-red-600 text-white text-sm" onclick="deleteBook(${b.id})">Delete</button>` : ''}
+            <button class="px-3 py-1 rounded ${b.qty>0 ? 'bg-emerald-600 text-white' : 'bg-slate-300 text-slate-600'} text-sm" ${b.qty>0 ? `onclick="borrow(${b.id})"` : 'disabled'}>
+              ${b.qty>0 ? 'Borrow' : 'Not Available'}
+            </button>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    function incQty(id){
+      const b = books.find(x=>x.id===id); if(!b) return;
+      b.qty++; save(STORAGE_KEYS.BOOKS, books); renderBooks(); renderBorrowed();
+    }
+    function decQty(id){
+      const b = books.find(x=>x.id===id); if(!b) return;
+      if (b.qty>0) b.qty--; save(STORAGE_KEYS.BOOKS, books); renderBooks(); renderBorrowed();
+    }
+    function deleteBook(id){
+      if(!confirm('Delete this book?')) return;
+      books = books.filter(x=>x.id!==id); save(STORAGE_KEYS.BOOKS, books);
+      renderBooks(); renderBorrowed();
+      populateGenreFilter();
+    }
+
+    /* -------------------------
+       BORROW (user)
+       ------------------------- */
+    function borrow(id){
+      if (!session.username) { alert('Please login as a user'); return; }
+      const b = books.find(x=>x.id===id); if(!b) return;
+      if (b.qty <= 0) { alert('Not available'); return; }
+      b.qty--; save(STORAGE_KEYS.BOOKS, books);
+
+      // mark borrowed for this username
+      if (!borrowed[session.username]) borrowed[session.username] = [];
+      borrowed[session.username].push({ id: id, when: new Date().toISOString() });
+      save(STORAGE_KEYS.BORROWED, borrowed);
+
+      renderBooks(); renderBorrowed();
+      alert('Book borrowed successfully');
+    }
+
+    function renderBorrowed(){
+      const ul = $('borrowedList'); ul.innerHTML = '';
+      if (!session.username) return hide($('borrowedPanel'));
+      show($('borrowedPanel'));
+      const list = borrowed[session.username] || [];
+      if (!list.length) { ul.innerHTML = '<div class="text-sm text-slate-500">No borrowed books this account.</div>'; return; }
+
+      list.slice().reverse().forEach(r => {
+        const book = books.find(b => b.id === r.id) || { title: '[deleted]' };
+        const li = document.createElement('li');
+        li.className = 'p-2 border rounded flex items-center justify-between';
+        li.innerHTML = `
+          <div>
+            <div class="font-medium">${escapeHtml(book.title)}</div>
+            <div class="text-xs text-slate-500">${new Date(r.when).toLocaleString()}</div>
+          </div>
+        `;
+        ul.appendChild(li);
+      });
+    }
+
+    /* -------------------------
+       UI helpers
+       ------------------------- */
+    function showPanel(id){
+      panels.forEach(p => hide(p));
+      show($(id));
+      // ensure panels that require data are refreshed
+      if (id === 'booksPanel') renderBooks();
+      if (id === 'usersPanel') renderUsers();
+      if (id === 'borrowedPanel') renderBorrowed();
+    }
+
+    function populateGenreFilter(){
+      const select = $('filterGenre');
+      const genres = Array.from(new Set(books.map(b=>b.genre).filter(Boolean)));
+      // keep existing selected
+      const cur = select.value || '';
+      select.innerHTML = '<option value="">All genres</option>' + genres.map(g => `<option ${g===cur ? 'selected' : ''} value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+    }
+
+    function deleteUser(username){
+      if(!confirm('Delete user '+username+'?')) return;
+      users = users.filter(u => u.username !== username);
+      save(STORAGE_KEYS.USERS, users);
+      renderUsers();
+    }
+
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+
+    /* -------------------------
+       Bootstrap: save defaults if empty
+       ------------------------- */
+    (function boot(){
+      if (!localStorage.getItem(STORAGE_KEYS.USERS)) save(STORAGE_KEYS.USERS, DEFAULT_USERS);
+      if (!localStorage.getItem(STORAGE_KEYS.BOOKS)) save(STORAGE_KEYS.BOOKS, DEFAULT_BOOKS);
+      if (!localStorage.getItem(STORAGE_KEYS.BORROWED)) save(STORAGE_KEYS.BORROWED, {});
+      // reload into state
+      users = load(STORAGE_KEYS.USERS, DEFAULT_USERS);
+      books = load(STORAGE_KEYS.BOOKS, DEFAULT_BOOKS);
+      borrowed = load(STORAGE_KEYS.BORROWED, {});
+      init();
+    })();
+  </script>
+</body>
+</html>
